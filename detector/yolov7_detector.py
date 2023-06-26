@@ -44,7 +44,7 @@ class YOLOV7_Detector:
             img = img.unsqueeze(0)
         return img
 
-    def detect(self, image, conf_thresh=0.4, iou_thresh=0.3, classes=None) -> List[dict]:
+    def detect(self, image, conf_thresh=0.5, iou_thresh=0.3, classes=None) -> List[dict]:
         """
         Parms:
         image: Numpy Array
