@@ -65,14 +65,14 @@ class YOLOv7_Detector:
                         'xywh': xywh
                     }
                     detections.append(detection)
-
+            print(detections)
             self.processing_pred(detections)
             #self.preprocessing(detection)
 
     def processing_pred(self,dict_list):
         for detection in dict_list:
             if detection['class']==0:
-                print('scsd')
+                print('weapon detected')
 
     @staticmethod
     def load_model(weights, map_location=None):
@@ -101,8 +101,8 @@ class YOLOv7_Detector:
             return model  # return ensemb
 
 if __name__ == '__main__':
-    image_path = "/Users/anshujoshi/PycharmProjects/labelimg/yolov7/12.jpg"
+    image_path = "/Users/anshujoshi/PycharmProjects/labelimg/yolov7/armas-187-_jpg.rf.31778d8c49148ca5c24945980d95c957.jpg"
     image = cv2.imread(image_path)
-    _model_path = "/Users/anshujoshi/PycharmProjects/labelimg/yolov7/yolov7.pt"
+    _model_path = "/Users/anshujoshi/PycharmProjects/labelimg/yolov7/weapon_detector.pt"
     yolov7_detector = YOLOv7_Detector(_model_path)
     results = yolov7_detector.detect(image)
