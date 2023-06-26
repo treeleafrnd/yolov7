@@ -1,3 +1,5 @@
+from typing import List
+
 from models.experimental import attempt_load, Ensemble
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
@@ -8,35 +10,30 @@ from models.common import Conv
 from utils.datasets import letterbox
 import numpy as np
 import cv2
-import matplotlib
+import numpy.typing as npt
+import logging
 
 
-
-def draw_bbox(dict_list, image):
-    dh, dw, _ = image.shape
-    for detection in dict_list:
-        t, l, b, r = detection['tlbr']
-        cv2.rectangle(image, (t, l), (b, r), (0, 0, 255), 1)
-    cv2.imshow("drawed image", image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
-class YOLOv7_Detector:
+class YOLOV7_Detector:
     def __init__(self, model_path, half=False, img_size=640):
         self.model_path = model_path
         self.device = select_device('cpu')
         self.im_size = img_size
-        self.model = self.load_model(self.model_path, map_location=self.device)
+        self.model = self.load_model(self.model_path)
         self.stride = int(self.model.stride.max())
         self.imgsz = check_img_size(self.im_size, s=self.stride)
 
         self.half = half
         if self.half:
             self.model = self.model.half()
-        names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
+        self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
 
-    def preprocessing(self, img):
+    def preprocessing(self, img) -> npt.NDArray:
+        """
+        Params:
+        img: Numpy array
+        returns: preprocessed tensor
+        """
         img = letterbox(img, self.im_size, stride=self.stride)[0]
 
         # Convert
@@ -49,7 +46,7 @@ class YOLOv7_Detector:
             img = img.unsqueeze(0)
         return img
 
-    def detect(self, image, conf_thresh=0.4, iou_thresh=0.3, classes=None, gn=None):
+    def detect(self, image, conf_thresh=0.4, iou_thresh=0.3, classes=None, gn=None) -> List[dict]:
         detections = []
         try:
             gn = torch.tensor(image.shape)[[1, 0, 1, 0]]
@@ -68,17 +65,19 @@ class YOLOv7_Detector:
                         detection = {
                             'confidence': round(float(conf), 2),
                             'class': int(cls),
+                            'class_name' : self.names[int(cls)],
                             'tlbr': [t, l, b, r]
                         }
                         detections.append(detection)
         except Exception as e:
-            print(str(e))
+            logging.exception("Exception occurred while detecting.", str(e))
+            # print(str(e))
         return detections
 
-    @staticmethod
-    def load_model(weights, map_location=None):
+    # @staticmethod
+    def load_model(self, weights) -> Ensemble:
         model = Ensemble()
-        ckpt = torch.load(weights, map_location=map_location)  # load
+        ckpt = torch.load(weights, map_location=self.device)  # load
         model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())
 
         for m in model.modules():
@@ -95,14 +94,5 @@ class YOLOv7_Detector:
             print('Ensemble created with %s\n' % weights)
             for k in ['names', 'stride']:
                 setattr(model, k, getattr(model[-1], k))
-            return model  # return ensemble
+            return model  # return ensemble model
 
-
-if __name__ == '__main__':
-    image_path = "2.jpg"
-    image = cv2.imread(image_path)
-    _model_path = "weapon_detector.pt"
-    yolov7_detector = YOLOv7_Detector(_model_path)
-    results = yolov7_detector.detect(image)
-    print("Detection result", results)
-    draw_bbox(results, image)
