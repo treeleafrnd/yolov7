@@ -14,8 +14,27 @@ def image_detector_example(draw=False):
         draw_bbox(results, image)
 
 
-def video_detector_example(draw=True):
-    pass
+def video_detector_example(draw=False):
+    _model_path = "../weapon_detector.pt"
+    yolov7_detector = YOLOV7_Detector(_model_path)
+    video_path = '../video_1.mp4'
+    video = cv2.VideoCapture(video_path)
+    while True:
+        ret, frame = video.read()
+        if not ret:
+            print('error reteriving frames')
+            break
+        results = yolov7_detector.detect(frame)
+        print(results)
+        if draw:
+            frame = draw_bbox(results, frame)
+        cv2.imshow("video", frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            cv2.destroyAllWindows()
+            break
+    # cv2.destroyAllWindows()
+    video.release()
 
 
 def draw_bbox(dict_list, image):
@@ -23,10 +42,13 @@ def draw_bbox(dict_list, image):
     for detection in dict_list:
         t, l, b, r = detection['tlbr']
         cv2.rectangle(image, (t, l), (b, r), (0, 0, 255), 1)
-    cv2.imshow("drawed image", image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    return image
+    # cv2.imshow("drawed image", image)
+    # key = cv2.waitKey(1) & 0xFF
+    # if key == ord("q"):
+    #     quit
+    # cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    image_detector_example(draw=True)
+    video_detector_example(draw=True)

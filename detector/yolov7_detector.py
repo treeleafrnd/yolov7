@@ -1,15 +1,14 @@
 from typing import List
 
-from models.experimental import attempt_load, Ensemble
-from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
+from models.experimental import Ensemble
+from utils.torch_utils import select_device
+from utils.general import check_img_size, non_max_suppression, \
+    scale_coords
 import torch
 import torch.nn as nn
 from models.common import Conv
 from utils.datasets import letterbox
 import numpy as np
-import cv2
 import numpy.typing as npt
 import logging
 
@@ -17,12 +16,11 @@ import logging
 class YOLOV7_Detector:
     def __init__(self, model_path, half=False, img_size=640):
         self.model_path = model_path
-        self.device = select_device('cpu')
+        self.device = select_device()
         self.im_size = img_size
         self.model = self.load_model(self.model_path)
         self.stride = int(self.model.stride.max())
         self.imgsz = check_img_size(self.im_size, s=self.stride)
-
         self.half = half
         if self.half:
             self.model = self.model.half()
@@ -46,10 +44,17 @@ class YOLOV7_Detector:
             img = img.unsqueeze(0)
         return img
 
-    def detect(self, image, conf_thresh=0.4, iou_thresh=0.3, classes=None, gn=None) -> List[dict]:
+    def detect(self, image, conf_thresh=0.4, iou_thresh=0.3, classes=None) -> List[dict]:
+        """
+        Parms:
+        image: Numpy Array
+        confidence threshold: 0-1
+        IOU threshoold: 0-1
+        Returns:
+        Detections: List of dictionaries
+        """
         detections = []
         try:
-            gn = torch.tensor(image.shape)[[1, 0, 1, 0]]
             img = self.preprocessing(image)
             with torch.no_grad():
                 pred = self.model(img, augment=True)[0]
@@ -57,25 +62,30 @@ class YOLOV7_Detector:
 
                 for i, det in enumerate(pred):
                     if len(det):
-                        #det=[tensor(bbox)*4, confidence,class]
+                        # det=[tensor(bbox)*4, confidence,class]
                         det[:, :4] = scale_coords(img.shape[2:], det[:, :4], image.shape).round()
                         # converts bbox of processed image to that or original image
-                    for *xyxy, conf, cls in (det):
-                        t, l, b, r = np.array(xyxy).astype(int) #top left bottom right
+                    for *xyxy, conf, cls in det:
+                        t, l, b, r = np.array(xyxy).astype(int)  # top left bottom right
                         detection = {
                             'confidence': round(float(conf), 2),
                             'class': int(cls),
-                            'class_name' : self.names[int(cls)],
+                            'class_name': self.names[int(cls)],
                             'tlbr': [t, l, b, r]
                         }
                         detections.append(detection)
         except Exception as e:
             logging.exception("Exception occurred while detecting.", str(e))
-            # print(str(e))
         return detections
 
     # @staticmethod
     def load_model(self, weights) -> Ensemble:
+        """
+        Parms:
+        weights: weight file
+        Returns:
+        ??
+        """
         model = Ensemble()
         ckpt = torch.load(weights, map_location=self.device)  # load
         model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())
@@ -95,4 +105,3 @@ class YOLOV7_Detector:
             for k in ['names', 'stride']:
                 setattr(model, k, getattr(model[-1], k))
             return model  # return ensemble model
-
