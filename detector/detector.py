@@ -1,9 +1,7 @@
-import os
 import random
 
 import cv2
 import numpy as np
-import numpy.typing as npt
 import torch
 import torch.nn as nn
 
@@ -55,7 +53,6 @@ class YoloV7Detector:
         bbox=[]
         confidence=[]
         class_=[]
-        count=1
         try:
             img = self.preprocess_image(image)
             gn = torch.tensor(image.shape)[[1, 0, 1, 0]]  # normalization gain whwh
@@ -70,27 +67,22 @@ class YoloV7Detector:
                     x,y,w,h = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
 
                     # x,y,w,h = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn) # normalized xywh
-                    bbox.append(f'image- {count}  {[x,y,w,h] } ')
-                    confidence.append(f'image {count}  {float(conf)} ')
-                    class_.append(f'image- {count}     {int(cls)} ')
-                    count+=1
+                    bbox.append([x,y,w,h])
+                    confidence.append(float(conf))
+                    class_.append(int(cls))
 
-                    #View Images
-                label = f'{self.names[int(cls)]} {conf:.2f}'
-                plot_one_box((x,y,w,h), image, label=label, color=self.colors[int(cls)], line_thickness=1)
+
 
 
 
         except Exception as e:
             print(str(e))
 
-        print(f'Bbox: -{bbox}')
-        print(f'Confidence:- {confidence}')
-        print(f'Class:- {class_}')
+        # print(f'Bbox: -{bbox}')
+        # print(f'Confidence:- {confidence}')
+        # print(f'Class:- {class_}')
 
-
-
-
+        return bbox
 
     @staticmethod
     def load_model(weights, map_location=None):
@@ -122,3 +114,12 @@ class YoloV7Detector:
 
 
 
+if __name__ == '__main__':
+    image_path = '/home/ishwor/Desktop/TreeLeaf/yolov7/inference/images/different_Monkey Images from Video1440.jpg'
+    image = cv2.imread(image_path)
+    _model_path = "/home/ishwor/Desktop/TreeLeaf/yolov7/monkey_image_detection.pt"
+    yolov7_detector = YoloV7Detector(_model_path)
+    bbox =yolov7_detector.detect(image)
+    # print(bbox)
+    # for i in bbox:  #Just for verification purposes
+    #     print(i)
