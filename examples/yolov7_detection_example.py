@@ -22,6 +22,7 @@ def image_detection(draw=False):
     if draw:
         image=draw_bbox(model_prediction,image_display)
         cv.imshow('Model Predicted Image',image)
+        cv.waitKey(0)
         cv.distoroyAllWindows()
 
 def video_detection(draw=False):
@@ -65,4 +66,4 @@ def webcam_detection(draw=False):
             break
 
 # webcam_detection()
-image_detection()
+# image_detection()
