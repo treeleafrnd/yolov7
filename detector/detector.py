@@ -49,13 +49,14 @@ class YoloV7Detector:
         return img
 
 
-    def detect(self, image, conf_thresh=0.25, iou_thresh=0.45, classes=None, gn=None):
+    def detect(self, image, conf_thresh=0.46, iou_thresh=0.45, classes=None, gn=None):
         bbox=[]
         confidence=[]
         class_=[]
         try:
             img = self.preprocess_image(image)
             gn = torch.tensor(image.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+
             pred = self.model(img, augment=True)[0]
             pred = non_max_suppression(pred, conf_thresh, iou_thresh, classes=classes, agnostic=True)
             for i, det in enumerate(pred):
@@ -63,16 +64,15 @@ class YoloV7Detector:
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], image.shape).round()
 
                 for *xyxy, conf, cls in reversed(det):
-                    # x,y,w,h=xyxy(torch.tensor(xyxy).view(1,4))/gn
-                    x,y,w,h = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                    # x,y,w,h = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # Mormalized xywh
 
-                    # x,y,w,h = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn) # normalized xywh
+                    x,y,w,h =(xyxy)  #Without Normalization
+
+
+
                     bbox.append([x,y,w,h])
                     confidence.append(float(conf))
                     class_.append(int(cls))
-
-
-
 
 
         except Exception as e:
@@ -114,12 +114,12 @@ class YoloV7Detector:
 
 
 
-if __name__ == '__main__':
-    image_path = '/home/ishwor/Desktop/TreeLeaf/yolov7/inference/images/different_Monkey Images from Video1440.jpg'
-    image = cv2.imread(image_path)
-    _model_path = "/home/ishwor/Desktop/TreeLeaf/yolov7/monkey_image_detection.pt"
-    yolov7_detector = YoloV7Detector(_model_path)
-    bbox =yolov7_detector.detect(image)
+# if __name__ == '__main__':
+#     image_path = '/home/ishwor/Desktop/TreeLeaf/yolov7/inference/images/different_Monkey Images from Video1440.jpg'
+#     image = cv2.imread(image_path)
+#     _model_path = "/home/ishwor/Desktop/TreeLeaf/yolov7/monkey_image_detection.pt"
+#     yolov7_detector = YoloV7Detector(_model_path)
+#     bbox =yolov7_detector.detect(image)
     # print(bbox)
     # for i in bbox:  #Just for verification purposes
     #     print(i)
