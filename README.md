@@ -54,11 +54,34 @@ cd /yolov7
 </details>
 
 ## Detect
-- To detect the monkey images, you have to save the images in the infrences/images folder, and you can give the path of that into the image path in detector.py.
+- To detect the monkey images, you have to save the images in the infrences/images folder, and you can give the path of that into the image path in detector.py inside detector directory.
 - From there, you will find out how many images are detected and the bounding box and classes.
 ``` shell
-python detect.py
+python detector.py
 ```
+## Visualization
+**Grad Cam**
+``` shell
+grad_pytorch.py
+```
+<div align="center">
+    <a href="./">
+        <img src="../yolov7/visualization experiment/examples/grad_cam_monkey1.PNG" width="79%"/>
+        <img src="../yolov7/visualization experiment/examples/grad_cam_monkey2.PNG" width="79%"/>
+    </a>
+</div>
+
+**Saliency Map**
+``` shell
+saliency_map.py
+```
+<div align="center">
+    <a href="./">
+        <img src="../yolov7/visualization experiment/examples/saliency_map_fig1.png" width="79%"/>
+        <img src="/home/ishwor/Desktop/TreeLeaf/yolov7/visualization experiment/examples/saliency_map_fig2.png" width="79%"/>
+    </a>
+</div>
+
 
 
 
