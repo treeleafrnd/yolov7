@@ -3,7 +3,6 @@ from torch.utils.tensorboard.summary import image
 
 from detector.detector import YoloV7Detector
 
-
 def draw_bbox(bbox, image):
     dh, dw, _ = image.shape
     for box in bbox:
