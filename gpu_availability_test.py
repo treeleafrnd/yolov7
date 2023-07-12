@@ -7,3 +7,4 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
     print('CPU')
+    
