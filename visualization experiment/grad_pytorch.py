@@ -32,8 +32,8 @@ class GradCam:
         pil_image = Image.fromarray(cam_image)
         pil_image.show()
 
-model_path = 'yolov7/best (7).pt'
-image_path = 'Monkeyy 37.jpg'
+model_path = '../best (7).pt'
+image_path = '/home/ishwor/Desktop/TreeLeaf/yolov7/visualization experiment/images/monkey1.jpg'
 
 grad_cam = GradCam(model_path, image_path)
 grad_cam.load_model()
