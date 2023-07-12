@@ -37,3 +37,6 @@ thop  # FLOPs computation
 # albumentations>=1.0.3
 # pycocotools>=2.0  # COCO mAP
 # roboflow
+
+# Grad-cam
+grad-cam==1.4.6

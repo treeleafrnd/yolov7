@@ -59,7 +59,7 @@ class YOLOV7_Detector:
             with torch.no_grad():
                 pred = self.model(img, augment=True)[0]
                 pred = non_max_suppression(pred, conf_thresh, iou_thresh, classes, agnostic=True)
-
+                #print(pred)
                 for i, det in enumerate(pred):
                     if len(det):
                         # det=[tensor(bbox)*4, confidence,class]

@@ -16,3 +16,6 @@ def Grad_Cam(model_path,image_path):
     cam_image = show_cam_on_image(image, grayscale_cam, use_rgb=True)
     pil_image = Image.fromarray(cam_image)
     pil_image.show()
+
+
+##Implemented in examples
