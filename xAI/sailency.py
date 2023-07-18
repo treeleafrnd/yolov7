@@ -1,116 +1,114 @@
+from detector.yolov7_detector import YOLOV7_Detector
 import torch
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+from torchvision import transforms, utils, models
+import matplotlib
+import torchvision.transforms as T
 from PIL import Image
 
-import models.yolo
-from utils.general import non_max_suppression
-from detector.yolov7_detector import YOLOV7_Detector
-import cv2
-from torchvision import transforms
-from utils.general import non_max_suppression
-from typing import List
-
-from models.experimental import Ensemble
-from utils.torch_utils import select_device
-from utils.general import check_img_size, non_max_suppression, \
-    scale_coords
-import torch
-import torch.nn as nn
-from models.common import Conv
-from utils.datasets import letterbox
-import numpy as np
-import numpy.typing as npt
-import logging
+matplotlib.use('TkAgg')  # or 'Qt5Agg'
 
 
-torch.autograd.set_detect_anomaly(True)
-import matplotlib
+class SalencyMap:
+    def __init__(self, model_path):
+        self.model_path = model_path
 
-matplotlib.use('Qt5Agg')  # or 'Qt5Agg'
+    # def preprocess_img(img_dir, channels=3):
+    #     if channels == 1:
+    #         img = cv2.imread(img_dir, 0)
+    #     elif channels == 3:
+    #         img = cv2.imread(img_dir)
+    #
+    #     shape_r = 288
+    #     shape_c = 384
+    #     original_shape = img.shape
+    #     rows_rate = original_shape[0] / shape_r
+    #     cols_rate = original_shape[1] / shape_c
+    #
+    #     if rows_rate > cols_rate:
+    #         new_cols = (original_shape[1] * shape_r) // original_shape[0]
+    #         img = cv2.resize(img, (new_cols, shape_r))
+    #     else:
+    #         new_rows = (original_shape[0] * shape_c) // original_shape[1]
+    #         img = cv2.resize(img, (shape_c, new_rows))
+    #
+    #     img_padded = cv2.copyMakeBorder(img, (shape_r - img.shape[0]) // 2, (shape_r - img.shape[0]) // 2,
+    #                                     (shape_c - img.shape[1]) // 2, (shape_c - img.shape[1]) // 2,
+    #                                     cv2.BORDER_CONSTANT, value=0)
+    #
+    #     return img_padded
+
+    def preprocess(image_path, size=640):
+
+        image = Image.open(image_path)
+        transform = T.Compose([
+            T.Resize((size, size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            T.Lambda(lambda x: x[None]),
+        ])
+        return transform(image)
+
+    def postprocess_img(pred, image_path):
+        pred = np.array(pred)
+        org = cv2.imread(image_path, 0)
+        shape_r = org.shape[0]
+        shape_c = org.shape[1]
+        predictions_shape = pred.shape
+
+        rows_rate = shape_r / predictions_shape[0]
+        cols_rate = shape_c / predictions_shape[1]
+
+        if rows_rate > cols_rate:
+            new_cols = (predictions_shape[1] * shape_r) // predictions_shape[0]
+            pred = cv2.resize(pred, (new_cols, shape_r))
+            img = pred[:, ((pred.shape[1] - shape_c) // 2):((pred.shape[1] - shape_c) // 2 + shape_c)]
+        else:
+            new_rows = (predictions_shape[0] * shape_c) // predictions_shape[1]
+            pred = cv2.resize(pred, (shape_c, new_rows))
+            img = pred[((pred.shape[0] - shape_r) // 2):((pred.shape[0] - shape_r) // 2 + shape_r), :]
+
+        return img
+
+    def main_implementation_saliency(self, image_path):
+
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        # flag = 1  # 0 for TranSalNet_Dense, 1 for TranSalNet_Res
+
+        model = torch.load(self.model_path)['model']
+        model=model.to(torch.float32)
+        model.eval()
+
+        img = SalencyMap.preprocess(image_path)  # padding and resizing input image into 384x288
+
+        pred_saliency = model(img)
+
+        toPIL = transforms.ToPILImage()
+        pic = toPIL(pred_saliency[0].squeeze().cpu())
+
+        actual_image = cv2.imread(image_path)
+
+        pred_saliency = SalencyMap.postprocess_img(pic,
+                                                   image_path)  # restore the image to its original size as the result
+
+        plt.subplot(1, 2, 1)
+        plt.imshow(cv2.cvtColor(actual_image, cv2.COLOR_BGR2RGB))
+        plt.title('Actual Image')
+        plt.axis('off')
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(pred_saliency, cmap=plt.cm.hot)  # alpha=0.5
+        plt.title('Saliency Map')
+        plt.axis('off')
+
+        plt.show()
 
 
-def load_model( weights) -> Ensemble:
-    """
-    Parms:
-    weights: weight file
-    Returns:
-    ??
-    """
-    model = Ensemble()
-    ckpt = torch.load(weights, map_location='cpu')  # load
-    model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())
+image_path = '/Users/anshujoshi/PycharmProjects/labelimg/yolov7/2.jpg'
+model_path = '/Users/anshujoshi/PycharmProjects/labelimg/yolov7/weapon_detector.pt'
 
-    for m in model.modules():
-        if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU]:
-            m.inplace = True
-        elif type(m) is nn.Upsample:
-            m.recompute_scale_factor = None
-        elif type(m) is Conv:
-            m._non_persistent_buffers_set = set()
-
-    if len(model) == 1:
-        return model[-1]  # return model
-    else:
-        print('Ensemble created with %s\n' % weights)
-        for k in ['names', 'stride']:
-            setattr(model, k, getattr(model[-1], k))
-        return model  # return ensemble model
-
-model=load_model('/Users/anshujoshi/PycharmProjects/labelimg/yolov7/weapon_detector.pt')
-model.eval()
-#detector=YOLOV7_Detector.load_model(weights='/Users/anshujoshi/PycharmProjects/labelimg/yolov7/weapon_detector.pt')
-#model=detector.load_model(weights='/Users/anshujoshi/PycharmProjects/labelimg/yolov7/weapon_detector.pt')
-# for param in model.parameters():
-#     param.requires_grad = False
-img_path = '/Users/anshujoshi/PycharmProjects/labelimg/yolov7/2.jpg'
-img = cv2.imread(img_path)
-img_pli = Image.open(img_path)
-transformed = transforms.Compose([transforms.Resize((640, 640)),
-                                  transforms.ToTensor(),
-                                  transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                                  transforms.Lambda(lambda x: x[None])])
-transformed_img = transformed(img_pli)
-transformed_img = transformed_img.to('cpu')
-transformed_img = transformed_img.reshape(1, 3, 640, 640)
-transformed_img.requires_grad_()
-output=model.forward_once(transformed_img)
-print(output)
-selected = output[0][0][0]
-print(selected)
-model.zero_grad()
-selected.backward()
-
-##custom transformes##
-#output = model(transformed_img)
-
-#print(output)
-# preds = non_max_suppression(output[0])
-# # print(preds)
-# selected = preds[0][0][4]
-# model.zero_grad()
-# selected.backward()
-
-
-
-# img_test=detector.preprocessing(img)
-# scores = model(img_test)
-# print(scores[0].shape)
-# preprocessed_image=detector.preprocessing(img)
-# print(preprocessed_image.shape)
-# output=model(preprocessed_image)
-# output_idx = output.argmax()
-# output_max = output[0, output_idx]
-
-# output_max.backward()
-# print(output)
-# # print(output[0][0][0][4])
-# print(output[0].shape)
-# for list in output[0][0]:
-#     print(list[4])
-#     break
-# preds=non_max_suppression(scores[0]) #converts to bbox,conf,class
-# print(preds)
-# selected=preds[0][0][4]
-# print(selected)
-# selected.backward()
-# #scores_max_index = torch.max()
-# # score_max = scores[0, scores_max_index]
+salency_map = SalencyMap(model_path)
+salency_map.main_implementation_saliency(image_path)
