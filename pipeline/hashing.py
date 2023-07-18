@@ -40,3 +40,5 @@ def generate_frames(video_path=None, stream=True):
 #     cv2.imshow("video", frames)
 #     if cv2.waitKey(1) & 0xFF == ord('q'):
 #          break
+
+
