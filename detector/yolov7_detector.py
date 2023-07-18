@@ -105,5 +105,3 @@ class YOLOV7_Detector:
             for k in ['names', 'stride']:
                 setattr(model, k, getattr(model[-1], k))
             return model  # return ensemble model
-
-

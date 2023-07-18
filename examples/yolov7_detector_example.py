@@ -53,6 +53,5 @@ def draw_bbox(dict_list, image):
         cv2.rectangle(image, (t, l), (b, r), (0, 0, 255), 1)
     return image
 
-
 if __name__ == '__main__':
     video_detector_example(draw=True)

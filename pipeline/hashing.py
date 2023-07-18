@@ -36,7 +36,6 @@ def generate_frames(video_path=None, stream=True):
     video.release()
     cv2.destroyAllWindows()
 
-
 # for frames,time_stamp in generate_frames(stream=False,video_path='../video_1.mp4'):
 #     cv2.imshow("video", frames)
 #     if cv2.waitKey(1) & 0xFF == ord('q'):
